@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+'''
+Execute remote commands with live output.
+'''
+
+from argparse import ArgumentParser
+from getpass import getuser
+from subprocess import call
+from sys import exit
+
+from ansible.inventory import Inventory
+
+def get_inventory(inventory_file, subset):
+    inventory = Inventory(inventory_file);
+    inventory.subset(subset)
+    return inventory
+
+def exec_cmd(args):
+    cmd = 'ssh -t {user}@{host} "{command}"'
+    call(cmd.format(**args), shell = True)
+    return None
+
+def main(args):
+    inventory = get_inventory(args.inventory, args.limit)
+    for host in inventory.list_hosts():
+        host_vars = inventory.get_variables(host)
+        exec_cmd({
+            'user': args.user,
+            'host': host_vars['ansible_ssh_host']
+                if 'ansible_ssh_host' in host_vars else host,
+            'command': args.command
+        })
+    return None
+
+if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument('-u', '--user', default = getuser(),
+        help = 'The user used for auth')
+    parser.add_argument('-i', '--inventory', default = '/etc/ansible/hosts',
+        help = 'The PATH to the inventory hosts file')
+    parser.add_argument('-l', '--limit',
+        help = 'Further limits the selected host/group patterns.')
+    parser.add_argument('command', help = 'The command to execute')
+    args = parser.parse_args()
+    status = main(args)
+    exit(status)
