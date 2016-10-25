@@ -7,6 +7,7 @@ Execute remote commands with live output.
 from argparse import ArgumentParser
 from getpass import getuser
 from subprocess import call
+from signal import signal, SIGINT
 from sys import exit
 
 from ansible.inventory import Inventory
@@ -34,6 +35,7 @@ def main(args):
     return None
 
 if __name__ == '__main__':
+    signal(SIGINT, lambda x,y: exit(130))
     parser = ArgumentParser()
     parser.add_argument('-u', '--user', default = getuser(),
         help = 'The user used for auth')
